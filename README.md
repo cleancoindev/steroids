@@ -1,4 +1,4 @@
-# steroids
+# :boom: steroids
 
 An Aragon app that allows to lock for a customizable amount of time, a quantity of UniV2 tokens in exchange for organization's tokens.
 
