@@ -45,7 +45,8 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
     TRANSFER_ROLE,
     CHANGE_LOCK_TIME_ROLE,
     CHANGE_MAX_LOCKS_ROLE,
-    CHANGE_VAULT_ROLE
+    CHANGE_VAULT_ROLE,
+    ADJUST_BALANCE_ROLE
 
   const NOT_CONTRACT = appManager
 
@@ -54,6 +55,7 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
     CHANGE_LOCK_TIME_ROLE = await steroidsBase.CHANGE_LOCK_TIME_ROLE()
     CHANGE_MAX_LOCKS_ROLE = await steroidsBase.CHANGE_MAX_LOCKS_ROLE()
     CHANGE_VAULT_ROLE = await steroidsBase.CHANGE_VAULT_ROLE()
+    ADJUST_BALANCE_ROLE = await steroidsBase.ADJUST_BALANCE_ROLE()
 
     tokenManagerBase = await TokenManager.new()
     MINT_ROLE = await tokenManagerBase.MINT_ROLE()
@@ -255,6 +257,15 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
       )
     })
 
+    it('Should not be able to adjust a balance because of no permission', async () => {
+      await assertRevert(
+        steroids.adjustBalanceOf(appManager, {
+          from: appManager,
+        }),
+        'APP_AUTH_FAILED'
+      )
+    })
+
     describe('stake(uint256 _amount, uint256 _lockTime, address _receiver) & unstake(uint256 _amount)', async () => {
       beforeEach(async () => {
         await setPermission(
@@ -301,11 +312,12 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
       })
 
       it('Should not be able to perform more stake than allowed (maxLocks)', async () => {
+        const amountToStake = 10
         for (let i = 0; i < MAX_LOCKS; i++) {
           await stake(
             uniswapV2Pair,
             steroids,
-            1,
+            amountToStake,
             LOCK_TIME,
             appManager,
             appManager
@@ -313,7 +325,14 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
         }
 
         await assertRevert(
-          stake(uniswapV2Pair, steroids, 1, LOCK_TIME, appManager, appManager),
+          stake(
+            uniswapV2Pair,
+            steroids,
+            amountToStake,
+            LOCK_TIME,
+            appManager,
+            appManager
+          ),
           'STEROIDS_IMPOSSIBLE_TO_INSERT'
         )
       })
@@ -917,16 +936,16 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
         await setPermission(
           acl,
           steroids.address,
-          wrappedTokenManager.address,
-          BURN_ROLE,
+          vault.address,
+          TRANSFER_ROLE,
           appManager
         )
 
         await setPermission(
           acl,
+          appManager,
           steroids.address,
-          vault.address,
-          TRANSFER_ROLE,
+          ADJUST_BALANCE_ROLE,
           appManager
         )
 

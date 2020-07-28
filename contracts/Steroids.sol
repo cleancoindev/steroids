@@ -19,6 +19,8 @@ contract Steroids is AragonApp {
     bytes32 public constant CHANGE_MAX_LOCKS_ROLE = keccak256("CHANGE_MAX_LOCKS_ROLE");
     // prettier-ignore
     bytes32 public constant CHANGE_VAULT_ROLE = keccak256("CHANGE_VAULT_ROLE");
+    // prettier-ignore
+    bytes32 public constant ADJUST_BALANCE_ROLE = keccak256("ADJUST_BALANCE_ROLE");
 
     uint64 public constant MAX_LOCKS_LIMIT = 20;
 
@@ -207,7 +209,10 @@ contract Steroids is AragonApp {
      *         unstake the correct amount of tokens
      * @param _owners token owners
      */
-    function adjustBalanceOfMany(address[] _owners) external {
+    function adjustBalanceOfMany(address[] _owners)
+        external
+        auth(ADJUST_BALANCE_ROLE)
+    {
         for (uint256 i = 0; i < _owners.length; i++) {
             adjustBalanceOf(_owners[i]);
         }
@@ -266,7 +271,11 @@ contract Steroids is AragonApp {
      * @dev This function requires the MINT_ROLE and BURN_ROLE permission on the TokenManager specified
      * @param _owner token owner
      */
-    function adjustBalanceOf(address _owner) public returns (bool) {
+    function adjustBalanceOf(address _owner)
+        public
+        auth(ADJUST_BALANCE_ROLE)
+        returns (bool)
+    {
         Lock[] storage stakedLocks = addressStakeLocks[_owner];
 
         uint256 uniswapV2PairTotalSupply = uniswapV2Pair.totalSupply();
