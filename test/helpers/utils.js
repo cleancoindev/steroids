@@ -48,6 +48,11 @@ const addLiquidity = async (
   await _pair.mint(_appManager)
 }
 
+const removeLiquidity = async (_pair, _appManager, _liquidity) => {
+  await _pair.transfer(_pair.address, _liquidity)
+  await _pair.burn(_appManager)
+}
+
 const getAdjustedAmount = async (_pair, _amount, _isStaking = true) => {
   const reserves = await _pair.getReserves()
   const reserve0 = parseInt(reserves[0])
@@ -67,10 +72,7 @@ const calculateMaxUnstakableAmount = async (_stakedLocks, _pair) => {
 
   let unstakableAmount = 0
   for (let i = 0; i < _stakedLocks.length; i++) {
-    if (
-      //timestamp >= parseInt(_stakedLocks[i].lockDate) + parseInt(_stakedLocks[i].duration) &&
-      !_isStakedLockEmpty(_stakedLocks[i])
-    ) {
+    if (!_isStakedLockEmpty(_stakedLocks[i])) {
       const adjustedWrappedTokenLockAmount = Math.floor(
         (parseInt(_stakedLocks[i].uniV2PairAmount) * reserve0) / totalSupply
       )
@@ -94,6 +96,7 @@ const _isStakedLockEmpty = ({
 
 module.exports = {
   addLiquidity,
+  removeLiquidity,
   stake,
   unstake,
   getBalances,

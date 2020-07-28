@@ -7,6 +7,7 @@ const {
   stake,
   unstake,
   addLiquidity,
+  removeLiquidity,
   getAdjustedAmount,
   calculateMaxUnstakableAmount,
 } = require('./helpers/utils')
@@ -254,7 +255,7 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
       )
     })
 
-    describe('stake(uint256 _amount, uint256 _lockTime, address _receiver)', async () => {
+    describe('stake(uint256 _amount, uint256 _lockTime, address _receiver) & unstake(uint256 _amount)', async () => {
       beforeEach(async () => {
         await setPermission(
           acl,
@@ -263,11 +264,28 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
           MINT_ROLE,
           appManager
         )
+
+        await setPermission(
+          acl,
+          steroids.address,
+          wrappedTokenManager.address,
+          BURN_ROLE,
+          appManager
+        )
+
+        await setPermission(
+          acl,
+          steroids.address,
+          vault.address,
+          TRANSFER_ROLE,
+          appManager
+        )
+
         await addLiquidity(
           token0,
           token1,
-          100000,
-          100000,
+          500000,
+          1000000,
           uniswapV2Pair,
           appManager
         )
@@ -342,43 +360,6 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
             appManager
           ),
           'STEROIDS_LOCK_TIME_TOO_LOW'
-        )
-      })
-    })
-
-    describe('unstake(uint256 _amount)', async () => {
-      beforeEach(async () => {
-        await setPermission(
-          acl,
-          steroids.address,
-          wrappedTokenManager.address,
-          MINT_ROLE,
-          appManager
-        )
-
-        await setPermission(
-          acl,
-          steroids.address,
-          wrappedTokenManager.address,
-          BURN_ROLE,
-          appManager
-        )
-
-        await setPermission(
-          acl,
-          steroids.address,
-          vault.address,
-          TRANSFER_ROLE,
-          appManager
-        )
-
-        await addLiquidity(
-          token0,
-          token1,
-          500000,
-          1000000,
-          uniswapV2Pair,
-          appManager
         )
       })
 
@@ -921,6 +902,116 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
           stake(uniswapV2Pair, steroids, 10, LOCK_TIME, appManager, appManager),
           'STEROIDS_IMPOSSIBLE_TO_INSERT'
         )
+      })
+    })
+    describe('adjustBalanceOf(address _owner)', async () => {
+      beforeEach(async () => {
+        await setPermission(
+          acl,
+          steroids.address,
+          wrappedTokenManager.address,
+          MINT_ROLE,
+          appManager
+        )
+
+        await setPermission(
+          acl,
+          steroids.address,
+          wrappedTokenManager.address,
+          BURN_ROLE,
+          appManager
+        )
+
+        await setPermission(
+          acl,
+          steroids.address,
+          vault.address,
+          TRANSFER_ROLE,
+          appManager
+        )
+
+        await addLiquidity(
+          token0,
+          token1,
+          500000,
+          1000000,
+          uniswapV2Pair,
+          appManager
+        )
+      })
+
+      it('Should adjust the balance when liquidity increases', async () => {
+        const token0Amount = 10000000
+        const token1Amount = 10000000
+        const amountToStake = 100000
+        await stake(
+          uniswapV2Pair,
+          steroids,
+          amountToStake,
+          LOCK_TIME,
+          appManager,
+          appManager
+        )
+
+        await addLiquidity(
+          token0,
+          token1,
+          token0Amount,
+          token1Amount,
+          uniswapV2Pair,
+          appManager
+        )
+        const receipt = await steroids.adjustBalanceOf(appManager)
+        const owner = getEventArgument(receipt, 'StakedLockAdjusted', 'owner')
+        const amount = parseInt(
+          getEventArgument(receipt, 'StakedLockAdjusted', 'amount')
+        )
+
+        const reserves = await uniswapV2Pair.getReserves()
+        const reserve0 = parseInt(reserves[0])
+        const totalSupply = parseInt(await uniswapV2Pair.totalSupply())
+        const expectedAdjustedBalance = Math.floor(
+          (amountToStake * reserve0) / totalSupply
+        )
+        const actualBalance = parseInt(await miniMeToken.balanceOf(appManager))
+
+        assert.strictEqual(actualBalance, expectedAdjustedBalance)
+        assert.strictEqual(amount, expectedAdjustedBalance)
+        assert.strictEqual(owner, appManager)
+      })
+
+      it('Should adjust the balance when liquidity decreases', async () => {
+        const liquidity = 500000
+        const amountToStake = 100000
+
+        await stake(
+          uniswapV2Pair,
+          steroids,
+          amountToStake,
+          LOCK_TIME,
+          appManager,
+          appManager
+        )
+
+        await removeLiquidity(uniswapV2Pair, appManager, liquidity)
+        const receipt = await steroids.adjustBalanceOf(appManager)
+        const owner = getEventArgument(receipt, 'StakedLockAdjusted', 'owner')
+        const amount = parseInt(
+          getEventArgument(receipt, 'StakedLockAdjusted', 'amount')
+        )
+
+        const reserves = await uniswapV2Pair.getReserves()
+        const reserve0 = parseInt(reserves[0])
+        const totalSupply = parseInt(await uniswapV2Pair.totalSupply())
+
+        const expectedAdjustedBalance = Math.floor(
+          (amountToStake * reserve0) / totalSupply
+        )
+        const actualBalance = parseInt(await miniMeToken.balanceOf(appManager))
+
+        assert.strictEqual(actualBalance, expectedAdjustedBalance)
+        assert.strictEqual(amount, expectedAdjustedBalance)
+        assert.strictEqual(owner, appManager)
       })
     })
   })
