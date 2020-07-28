@@ -6,7 +6,7 @@ import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 import "@aragon/apps-vault/contracts/Vault.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
 import "@aragon/os/contracts/lib/math/SafeMath64.sol";
-import "./IUniswapV2Pair.sol";
+import "./interfaces/IUniswapV2Pair.sol";
 
 
 contract Steroids is AragonApp {
