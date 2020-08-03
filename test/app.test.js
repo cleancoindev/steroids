@@ -922,6 +922,13 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
           'STEROIDS_IMPOSSIBLE_TO_INSERT'
         )
       })
+
+      it('Should not be able to stake zero tokens', async () => {
+        await assertRevert(
+          stake(uniswapV2Pair, steroids, 0, LOCK_TIME, appManager, appManager),
+          'STEROIDS_AMOUNT_TOO_LOW'
+        )
+      })
     })
     describe('adjustBalanceOf(address _owner)', async () => {
       beforeEach(async () => {

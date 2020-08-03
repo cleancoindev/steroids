@@ -42,6 +42,8 @@ contract Steroids is AragonApp {
     string private constant ERROR_IMPOSSIBLE_TO_INSERT = "STEROIDS_IMPOSSIBLE_TO_INSERT";
     // prettier-ignore
     string private constant ERROR_MAX_LOCKS_TOO_HIGH = "STEROIDS_MAX_LOCKS_TOO_HIGH";
+    // prettier-ignore
+    string private constant ERROR_AMOUNT_TOO_LOW = "STEROIDS_AMOUNT_TOO_LOW";
 
     struct Lock {
         uint64 lockDate;
@@ -119,6 +121,7 @@ contract Steroids is AragonApp {
         address _receiver
     ) external returns (bool) {
         require(_duration >= minLockTime, ERROR_LOCK_TIME_TOO_LOW);
+        require(_amount > 0, ERROR_AMOUNT_TOO_LOW);
         require(
             uniswapV2Pair.balanceOf(msg.sender) >= _amount,
             ERROR_INSUFFICENT_TOKENS
