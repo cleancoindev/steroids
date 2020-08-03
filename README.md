@@ -94,7 +94,8 @@ yarn test
 Create an __`.env`__ file with the following format
 
 ```
-PRIVATE_KEY=
+RINKEBY_PRIVATE_KEY=
+MAINNET_PRIVATE_KEY=
 INFURA_KEY=
 ```
 

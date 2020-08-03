@@ -30,6 +30,11 @@ module.exports = {
     rinkeby: {
       url: `https://rinkeby.infura.io/v3/${getEnvironmentVariable('INFURA_KEY')}`,
       accounts: [getEnvironmentVariable('PRIVATE_KEY')]
+    },
+    mainnet: {
+      url: `https://mainnet.infura.io/v3/${getEnvironmentVariable('INFURA_KEY')}`,
+      accounts: [getEnvironmentVariable('MAINNET_PRIVATE_KEY')],
+      gasPrice: 45e9
     }
   },
   solc: {
