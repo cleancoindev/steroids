@@ -1,5 +1,5 @@
 const { assert } = require('chai')
-const { assertRevert } = require('@aragon/contract-test-helpers/assertThrow')
+const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 const { newDao, newApp } = require('./helpers/dao')
 const { setPermission } = require('./helpers/permissions')
 const { timeTravel } = require('./helpers/time-travel')
@@ -11,7 +11,7 @@ const {
   getAdjustedAmount,
   calculateMaxUnstakableAmount,
 } = require('./helpers/utils')
-const { getEventArgument } = require('@aragon/contract-test-helpers/events')
+const { getEventArgument } = require('@aragon/test-helpers/events')
 
 const MiniMeToken = artifacts.require('MiniMeToken')
 const MiniMeTokenFactory = artifacts.require('MiniMeTokenFactory')

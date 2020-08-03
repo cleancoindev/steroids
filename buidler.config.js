@@ -3,6 +3,7 @@ const { usePlugin } = require('@nomiclabs/buidler/config')
 const hooks = require('./scripts/buidler-hooks')
 
 usePlugin('@aragon/buidler-aragon')
+usePlugin('@nomiclabs/buidler-etherscan')
 
 const getEnvironmentVariable = _envVar =>
   process.env[_envVar]
@@ -13,7 +14,8 @@ const getEnvironmentVariable = _envVar =>
         '✘ Please provide an infura api key as and an',
         '✘ account private key as environment variables:',
         '✘ PRIVATE_KEY',
-        '✘ INFURA_KEY'
+        '✘ INFURA_KEY',
+        '✘ ETHERSCAN_API_KEY'
       ),
       process.exit(1)
     )
@@ -39,7 +41,8 @@ module.exports = {
   },
   // Etherscan plugin configuration. Learn more at https://github.com/nomiclabs/buidler/tree/master/packages/buidler-etherscan
   etherscan: {
-    apiKey: '', // API Key for smart contract verification. Get yours at https://etherscan.io/apis
+    apiKey: `${getEnvironmentVariable('ETHERSCAN_API_KEY')}`, // API Key for smart contract verification. Get yours at https://etherscan.io/apis,
+    url: 'https://api.etherscan.io/api'
   },
   // Aragon plugin configuration
   aragon: {
