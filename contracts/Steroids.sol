@@ -54,7 +54,7 @@ contract Steroids is AragonApp {
 
     TokenManager public wrappedTokenManager;
     Vault public vault;
-    IUniswapV2Pair public uniswapV2Pair;
+    IUniswapV2Pair public uniV2Pair;
 
     uint64 public minLockTime;
     uint64 public maxLocks;
@@ -101,7 +101,7 @@ contract Steroids is AragonApp {
 
         wrappedTokenManager = TokenManager(_tokenManager);
         vault = Vault(_vault);
-        uniswapV2Pair = IUniswapV2Pair(_uniswapV2Pair);
+        uniV2Pair = IUniswapV2Pair(_uniswapV2Pair);
         minLockTime = _minLockTime;
         maxLocks = _maxLocks;
 
@@ -109,9 +109,9 @@ contract Steroids is AragonApp {
     }
 
     /**
-     * @notice Stake a given amount of uniswapV2Pair into wrappedTokenManager's token
+     * @notice Stake a given amount of uniV2Pair into wrappedTokenManager's token
      * @dev This function requires the MINT_ROLE permission on the TokenManager specified
-     * @param _amount number of uniswapV2Pair tokens to stake
+     * @param _amount number of uniV2Pair tokens to stake
      * @param _duration lock time for this wrapping
      * @param _receiver address who will receive back once unwrapped
      */
@@ -123,22 +123,22 @@ contract Steroids is AragonApp {
         require(_duration >= minLockTime, ERROR_LOCK_TIME_TOO_LOW);
         require(_amount > 0, ERROR_AMOUNT_TOO_LOW);
         require(
-            uniswapV2Pair.balanceOf(msg.sender) >= _amount,
+            uniV2Pair.balanceOf(msg.sender) >= _amount,
             ERROR_INSUFFICENT_TOKENS
         );
         require(
-            uniswapV2Pair.allowance(msg.sender, this) >= _amount,
+            uniV2Pair.allowance(msg.sender, this) >= _amount,
             ERROR_TOKENS_NOT_APPROVED
         );
         require(
-            uniswapV2Pair.transferFrom(msg.sender, address(vault), _amount),
+            uniV2Pair.transferFrom(msg.sender, address(vault), _amount),
             ERROR_TOKEN_WRAP_REVERTED
         );
 
         // the amount to stake is the _amount of staked tokens within an Uniswap pool by msg.sender
         // amount = (_amount / totalSupply) * reserve0
-        uint256 uniswapV2PairTotalSupply = uniswapV2Pair.totalSupply();
-        (uint256 uniswapV2PairReserve0, , ) = uniswapV2Pair.getReserves();
+        uint256 uniswapV2PairTotalSupply = uniV2Pair.totalSupply();
+        (uint256 uniswapV2PairReserve0, , ) = uniV2Pair.getReserves();
         uint256 wrappedTokenAmountToStake = _amount
             .mul(uniswapV2PairReserve0)
             .div(uniswapV2PairTotalSupply);
@@ -182,8 +182,8 @@ contract Steroids is AragonApp {
      * @param _amount Wrapped amount
      */
     function unstake(uint256 _amount) external returns (uint256) {
-        uint256 uniswapV2PairTotalSupply = uniswapV2Pair.totalSupply();
-        (uint256 uniswapV2PairReserve0, , ) = uniswapV2Pair.getReserves();
+        uint256 uniswapV2PairTotalSupply = uniV2Pair.totalSupply();
+        (uint256 uniswapV2PairReserve0, , ) = uniV2Pair.getReserves();
 
         require(
             _updateStakedTokenLocks(
@@ -201,7 +201,7 @@ contract Steroids is AragonApp {
             .mul(uniswapV2PairTotalSupply)
             .div(uniswapV2PairReserve0);
 
-        vault.transfer(uniswapV2Pair, msg.sender, uniV2AmountToTransfer);
+        vault.transfer(uniV2Pair, msg.sender, uniV2AmountToTransfer);
 
         emit Unstaked(msg.sender, uniV2AmountToTransfer, _amount);
         return uniV2AmountToTransfer;
@@ -281,8 +281,8 @@ contract Steroids is AragonApp {
     {
         Lock[] storage stakedLocks = addressStakeLocks[_owner];
 
-        uint256 uniswapV2PairTotalSupply = uniswapV2Pair.totalSupply();
-        (uint256 uniswapV2PairReserve0, , ) = uniswapV2Pair.getReserves();
+        uint256 uniswapV2PairTotalSupply = uniV2Pair.totalSupply();
+        (uint256 uniswapV2PairReserve0, , ) = uniV2Pair.getReserves();
 
         for (uint256 i = 0; i < stakedLocks.length; i++) {
             _adjustBalanceAndStakedLockOf(
