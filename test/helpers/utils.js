@@ -60,38 +60,6 @@ const getAdjustedAmount = async (_pair, _amount) => {
   return Math.floor((_amount * reserve0) / totalSupply)
 }
 
-// NOTE: call steroids.adjusteBalanceOf() before getting staked locks to process
-// and is supposed that all staked locks are unlocked. Basically this function
-// calculates the total amount of unstakable tokens
-const calculateMaxUnstakableAmount = async (_stakedLocks, _pair) => {
-  const reserves = await _pair.getReserves()
-  const reserve0 = parseInt(reserves[0])
-  const totalSupply = parseInt(await _pair.totalSupply())
-
-  let unstakableAmount = 0
-  for (let i = 0; i < _stakedLocks.length; i++) {
-    if (!_isStakedLockEmpty(_stakedLocks[i])) {
-      const adjustedWrappedTokenLockAmount = Math.floor(
-        (parseInt(_stakedLocks[i].uniV2PairAmount) * reserve0) / totalSupply
-      )
-      unstakableAmount += adjustedWrappedTokenLockAmount
-    }
-  }
-
-  return unstakableAmount
-}
-
-const _isStakedLockEmpty = ({
-  lockDate,
-  duration,
-  uniV2PairAmount,
-  wrappedTokenAmount,
-}) =>
-  lockDate === '0' &&
-  duration === '0' &&
-  uniV2PairAmount === '0' &&
-  wrappedTokenAmount === '0'
-
 module.exports = {
   addLiquidity,
   removeLiquidity,
@@ -99,5 +67,4 @@ module.exports = {
   unstake,
   getBalances,
   getAdjustedAmount,
-  calculateMaxUnstakableAmount,
 }
