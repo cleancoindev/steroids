@@ -9,7 +9,6 @@ const {
   addLiquidity,
   removeLiquidity,
   getAdjustedAmount,
-  calculateMaxUnstakableAmount,
 } = require('./helpers/utils')
 const { getEventArgument } = require('@aragon/test-helpers/events')
 
@@ -407,18 +406,12 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
 
         await timeTravel(LOCK_TIME)
 
-        const unstakableAmount = await getAdjustedAmount(
+        const expectedUnstakedAmount = await getAdjustedAmount(
           uniV2Pair,
           amountToStake
         )
 
-        const expectedUnstakedAmount = await getAdjustedAmount(
-          uniV2Pair,
-          unstakableAmount,
-          false
-        )
-
-        receipt = await unstake(steroids, unstakableAmount, appManager)
+        receipt = await unstake(steroids, amountToStake, appManager)
         uniV2Amount = getEventArgument(receipt, 'Unstaked', 'uniV2Amount')
         wrappedTokenAmount = getEventArgument(
           receipt,
@@ -427,8 +420,8 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
         )
         const receiver = getEventArgument(receipt, 'Unstaked', 'receiver')
 
-        assert.strictEqual(parseInt(uniV2Amount), expectedUnstakedAmount)
-        assert.strictEqual(parseInt(wrappedTokenAmount), unstakableAmount)
+        assert.strictEqual(parseInt(uniV2Amount), amountToStake)
+        assert.strictEqual(parseInt(wrappedTokenAmount), expectedUnstakedAmount)
         assert.strictEqual(receiver, appManager)
       })
 
@@ -526,52 +519,25 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
 
         await timeTravel(LOCK_TIME)
 
-        const unstakableAmount = await getAdjustedAmount(
-          uniV2Pair,
-          amountToStake * 2
-        )
-
-        let expectedUnstakedAmount = await getAdjustedAmount(
-          uniV2Pair,
-          unstakableAmount - 60,
-          false
-        )
-        let receipt = await unstake(steroids, unstakableAmount - 60, appManager)
-        let uniV2Amount = parseInt(
-          getEventArgument(receipt, 'Unstaked', 'uniV2Amount')
-        )
-        let wrappedTokenAmount = getEventArgument(
-          receipt,
-          'Unstaked',
-          'wrappedTokenAmount'
-        )
-        assert.strictEqual(parseInt(uniV2Amount), expectedUnstakedAmount)
-        assert.strictEqual(parseInt(wrappedTokenAmount), unstakableAmount - 60)
-
-        for (;;) {
-          const currentMaxUnstakable = await calculateMaxUnstakableAmount(
-            await steroids.getStakedLocks(appManager),
-            uniV2Pair
-          )
-
-          if (!currentMaxUnstakable) break
-
-          expectedUnstakedAmount = await getAdjustedAmount(
+        for (let i = 0; i < 2; i++) {
+          const expectedUnstakedAmount = await getAdjustedAmount(
             uniV2Pair,
-            currentMaxUnstakable,
-            false
+            amountToStake
           )
-          receipt = await unstake(steroids, currentMaxUnstakable, appManager)
-          uniV2Amount = parseInt(
+          const receipt = await unstake(steroids, amountToStake, appManager)
+          const uniV2Amount = parseInt(
             getEventArgument(receipt, 'Unstaked', 'uniV2Amount')
           )
-          wrappedTokenAmount = getEventArgument(
+          const wrappedTokenAmount = getEventArgument(
             receipt,
             'Unstaked',
             'wrappedTokenAmount'
           )
-          assert.strictEqual(parseInt(uniV2Amount), expectedUnstakedAmount)
-          assert.strictEqual(parseInt(wrappedTokenAmount), currentMaxUnstakable)
+          assert.strictEqual(parseInt(uniV2Amount), amountToStake)
+          assert.strictEqual(
+            parseInt(wrappedTokenAmount),
+            expectedUnstakedAmount
+          )
         }
       })
 
@@ -602,54 +568,26 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
         await token1.transfer(uniV2Pair.address, swapAmount)
         await uniV2Pair.swap(amount0Out, 0, appManager, '0x')
 
-        await timeTravel(LOCK_TIME * 5)
-
-        const unstakableAmount = await getAdjustedAmount(
-          uniV2Pair,
-          amountToStake * 2
-        ) // 280
-
-        let expectedUnstakedAmount = await getAdjustedAmount(
-          uniV2Pair,
-          unstakableAmount - 60,
-          false
-        )
-        let receipt = await unstake(steroids, unstakableAmount - 60, appManager)
-        let uniV2Amount = parseInt(
-          getEventArgument(receipt, 'Unstaked', 'uniV2Amount')
-        )
-        let wrappedTokenAmount = getEventArgument(
-          receipt,
-          'Unstaked',
-          'wrappedTokenAmount'
-        )
-        assert.strictEqual(parseInt(uniV2Amount), expectedUnstakedAmount)
-        assert.strictEqual(parseInt(wrappedTokenAmount), unstakableAmount - 60)
-
-        for (;;) {
-          const currentMaxUnstakable = await calculateMaxUnstakableAmount(
-            await steroids.getStakedLocks(appManager),
-            uniV2Pair
-          )
-          if (!currentMaxUnstakable) break
-
-          expectedUnstakedAmount = await getAdjustedAmount(
+        for (let i = 0; i < 2; i++) {
+          await timeTravel(LOCK_TIME * 5)
+          const expectedUnstakedAmount = await getAdjustedAmount(
             uniV2Pair,
-            currentMaxUnstakable,
-            false
+            amountToStake
           )
-
-          receipt = await unstake(steroids, currentMaxUnstakable, appManager)
-          uniV2Amount = parseInt(
+          const receipt = await unstake(steroids, amountToStake, appManager)
+          const uniV2Amount = parseInt(
             getEventArgument(receipt, 'Unstaked', 'uniV2Amount')
           )
-          wrappedTokenAmount = getEventArgument(
+          const wrappedTokenAmount = getEventArgument(
             receipt,
             'Unstaked',
             'wrappedTokenAmount'
           )
-          assert.strictEqual(parseInt(uniV2Amount), expectedUnstakedAmount)
-          assert.strictEqual(parseInt(wrappedTokenAmount), currentMaxUnstakable)
+          assert.strictEqual(parseInt(uniV2Amount), amountToStake)
+          assert.strictEqual(
+            parseInt(wrappedTokenAmount),
+            expectedUnstakedAmount
+          )
         }
       })
 
@@ -665,27 +603,22 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
         )
 
         await timeTravel(LOCK_TIME)
-        const unstakableAmount = await getAdjustedAmount(
+
+        const expectedUnstakedAmount = await getAdjustedAmount(
           uniV2Pair,
           amountToStake
         )
-
-        let expectedUnstakedAmount = await getAdjustedAmount(
-          uniV2Pair,
-          unstakableAmount,
-          false
-        )
-        let receipt = await unstake(steroids, unstakableAmount, ACCOUNTS_1)
-        let uniV2Amount = parseInt(
+        const receipt = await unstake(steroids, amountToStake, ACCOUNTS_1)
+        const uniV2Amount = parseInt(
           getEventArgument(receipt, 'Unstaked', 'uniV2Amount')
         )
-        let wrappedTokenAmount = getEventArgument(
+        const wrappedTokenAmount = getEventArgument(
           receipt,
           'Unstaked',
           'wrappedTokenAmount'
         )
-        assert.strictEqual(parseInt(uniV2Amount), expectedUnstakedAmount)
-        assert.strictEqual(parseInt(wrappedTokenAmount), unstakableAmount)
+        assert.strictEqual(parseInt(uniV2Amount), amountToStake)
+        assert.strictEqual(parseInt(wrappedTokenAmount), expectedUnstakedAmount)
       })
 
       it('Should not be able to stake for a non sender address and unstake to msg.sender', async () => {
@@ -712,37 +645,12 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
 
       it('Should be able to insert in an empty slot', async () => {
         const expectedLock = undefined
+        const amountToStake = 10
         for (let i = 0; i < MAX_LOCKS; i++) {
           await stake(
             uniV2Pair,
             steroids,
-            10,
-            LOCK_TIME,
-            appManager,
-            appManager
-          )
-        }
-
-        const unstakableAmount = await calculateMaxUnstakableAmount(
-          await steroids.getStakedLocks(appManager),
-          uniV2Pair
-        )
-
-        await timeTravel(LOCK_TIME)
-
-        for (let i = 0; i < MAX_LOCKS; i++) {
-          await unstake(
-            steroids,
-            Math.floor(unstakableAmount / MAX_LOCKS),
-            appManager
-          )
-        }
-
-        for (let i = 0; i < MAX_LOCKS; i++) {
-          await stake(
-            uniV2Pair,
-            steroids,
-            10,
+            amountToStake,
             LOCK_TIME,
             appManager,
             appManager
@@ -752,11 +660,24 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
         await timeTravel(LOCK_TIME)
 
         for (let i = 0; i < MAX_LOCKS; i++) {
-          await unstake(
+          await unstake(steroids, amountToStake, appManager)
+        }
+
+        for (let i = 0; i < MAX_LOCKS; i++) {
+          await stake(
+            uniV2Pair,
             steroids,
-            Math.floor(unstakableAmount / MAX_LOCKS),
+            amountToStake,
+            LOCK_TIME,
+            appManager,
             appManager
           )
+        }
+
+        await timeTravel(LOCK_TIME)
+
+        for (let i = 0; i < MAX_LOCKS; i++) {
+          await unstake(steroids, amountToStake, appManager)
         }
 
         const locks = await steroids.getStakedLocks(appManager)
@@ -783,37 +704,8 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
           )
         }
 
-        const unstakableAmount = await getAdjustedAmount(
-          uniV2Pair,
-          amountToStake
-        )
         await timeTravel(LOCK_TIME)
-
-        await unstake(steroids, Math.round(unstakableAmount / 2), appManager)
-        let locks = (await steroids.getStakedLocks(appManager)).filter(
-          ({ lockDate, duration, uniV2PairAmount, wrappedTokenAmount }) =>
-            lockDate !== '0' &&
-            duration !== '0' &&
-            uniV2PairAmount !== '0' &&
-            wrappedTokenAmount !== '0'
-        )
-
-        const reserves = await uniV2Pair.getReserves()
-        const reserve0 = parseInt(reserves[0])
-        const totalSupply = parseInt(await uniV2Pair.totalSupply())
-        while (locks.length > 0) {
-          const amountToUnstake = Math.floor(
-            (parseInt(locks[0].uniV2PairAmount) * reserve0) / totalSupply
-          )
-          await unstake(steroids, amountToUnstake, appManager)
-          locks = (await steroids.getStakedLocks(appManager)).filter(
-            ({ lockDate, duration, uniV2PairAmount, wrappedTokenAmount }) =>
-              lockDate !== '0' &&
-              duration !== '0' &&
-              uniV2PairAmount !== '0' &&
-              wrappedTokenAmount !== '0'
-          )
-        }
+        await unstake(steroids, amountToStake * MAX_LOCKS, appManager)
 
         locks = await steroids.getStakedLocks(appManager)
         let filtered = locks.filter(
@@ -825,6 +717,12 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
         )
 
         assert.strictEqual(locks.length, filtered.length)
+        assert.strictEqual(
+          parseInt(
+            (await miniMeToken.balanceOf(appManager))
+          ),
+          0
+        )
 
         for (let i = 0; i < MAX_LOCKS; i++) {
           await stake(
@@ -861,19 +759,9 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
           )
         }
 
-        let unstakableAmount = await calculateMaxUnstakableAmount(
-          await steroids.getStakedLocks(appManager),
-          uniV2Pair
-        )
-
         await timeTravel(LOCK_TIME)
-        await unstake(steroids, Math.floor(unstakableAmount / 2), appManager)
-
-        unstakableAmount = await calculateMaxUnstakableAmount(
-          await steroids.getStakedLocks(appManager),
-          uniV2Pair
-        )
-        await unstake(steroids, unstakableAmount, appManager)
+        await unstake(steroids, amountToStake * MAX_LOCKS / 2, appManager)
+        await unstake(steroids, amountToStake * MAX_LOCKS / 2, appManager)
 
         locks = await steroids.getStakedLocks(appManager)
         const emptyLocks = locks.filter(
@@ -884,9 +772,15 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
             wrappedTokenAmount === '0'
         )
         assert.strictEqual(emptyLocks.length, locks.length)
+        assert.strictEqual(
+          parseInt(
+            (await miniMeToken.balanceOf(appManager))
+          ),
+          0
+        )
       })
 
-      it('Should be able to unwrap after changing CHANGE_MAX_LOCKS_ROLE until MAX_LOCKS + 1', async () => {
+      it('Should be able to unstake after changing CHANGE_MAX_LOCKS_ROLE until MAX_LOCKS + 1', async () => {
         await setPermission(
           acl,
           appManager,

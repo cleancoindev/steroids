@@ -179,32 +179,29 @@ contract Steroids is AragonApp {
     /**
      * @notice Unstake a given amount of wrappedTokenManager's token
      * @dev This function requires the MINT_ROLE and BURN_ROLE permissions on the TokenManager and TRANSFER_ROLE on the Vault specified
-     * @param _amount Wrapped amount
+     * @param _amount uniV2Pair amount
      */
-    function unstake(uint256 _amount) external returns (uint256) {
+    function unstake(uint256 _amount) external returns (bool) {
         uint256 uniswapV2PairTotalSupply = uniV2Pair.totalSupply();
         (uint256 uniswapV2PairReserve0, , ) = uniV2Pair.getReserves();
 
-        require(
-            _updateStakedTokenLocks(
-                msg.sender,
-                _amount,
-                uniswapV2PairTotalSupply,
-                uniswapV2PairReserve0
-            ),
-            ERROR_NOT_ENOUGH_UNWRAPPABLE_TOKENS
+        (
+            bool result,
+            uint256 burnableWrappedTokenAmount
+        ) = _updateStakedTokenLocksAndCalculateBurnableWrappedTokenAmount(
+            msg.sender,
+            _amount,
+            uniswapV2PairTotalSupply,
+            uniswapV2PairReserve0
         );
 
-        wrappedTokenManager.burn(msg.sender, _amount);
+        require(result, ERROR_NOT_ENOUGH_UNWRAPPABLE_TOKENS);
 
-        uint256 uniV2AmountToTransfer = _amount
-            .mul(uniswapV2PairTotalSupply)
-            .div(uniswapV2PairReserve0);
+        wrappedTokenManager.burn(msg.sender, burnableWrappedTokenAmount);
+        vault.transfer(uniV2Pair, msg.sender, _amount);
 
-        vault.transfer(uniV2Pair, msg.sender, uniV2AmountToTransfer);
-
-        emit Unstaked(msg.sender, uniV2AmountToTransfer, _amount);
-        return uniV2AmountToTransfer;
+        emit Unstaked(msg.sender, _amount, burnableWrappedTokenAmount);
+        return true;
     }
 
     /**
@@ -298,24 +295,25 @@ contract Steroids is AragonApp {
     /**
      * @notice Check if it's possible to unwrap the specified _amountToUnstake of tokens and updates (or deletes) related stakedLocks
      * @param _unstaker address who want to unwrap
-     * @param _amountToUnstake amount
+     * @param _amountToUnstake uinV2Pair amount
      * @param _uniswapV2PairTotalSupply UniV2 current total supply
      * @param _uniswapV2PairReserve0 UniV2 current value of Reserve0
      */
-    function _updateStakedTokenLocks(
+    function _updateStakedTokenLocksAndCalculateBurnableWrappedTokenAmount(
         address _unstaker,
         uint256 _amountToUnstake,
         uint256 _uniswapV2PairTotalSupply,
         uint256 _uniswapV2PairReserve0
-    ) internal returns (bool) {
+    ) internal returns (bool result, uint256 burnableWrappedAmount) {
         Lock[] storage stakedLocks = addressStakeLocks[_unstaker];
+        burnableWrappedAmount = 0;
+        result = false;
 
         uint256 totalAmountUnstakedSoFar = 0;
         uint256 stakedLocksLength = stakedLocks.length;
         uint64[] memory locksToRemove = new uint64[](stakedLocksLength);
         uint64 currentIndexOfLocksToBeRemoved = 0;
 
-        bool result = false;
         uint64 timestamp = getTimestamp64();
         uint64 i = 0;
         for (; i < stakedLocksLength; i++) {
@@ -332,30 +330,44 @@ contract Steroids is AragonApp {
                 );
 
                 totalAmountUnstakedSoFar = totalAmountUnstakedSoFar.add(
-                    stakedLocks[i].wrappedTokenAmount
+                    stakedLocks[i].uniV2PairAmount
                 );
 
                 if (_amountToUnstake == totalAmountUnstakedSoFar) {
                     locksToRemove[currentIndexOfLocksToBeRemoved] = i;
                     currentIndexOfLocksToBeRemoved = currentIndexOfLocksToBeRemoved
                         .add(1);
+
+                    burnableWrappedAmount = burnableWrappedAmount.add(
+                        stakedLocks[i].wrappedTokenAmount
+                    );
                     result = true;
                     break;
                 } else if (_amountToUnstake < totalAmountUnstakedSoFar) {
-                    stakedLocks[i].wrappedTokenAmount = totalAmountUnstakedSoFar
+                    stakedLocks[i].uniV2PairAmount = totalAmountUnstakedSoFar
                         .sub(_amountToUnstake);
 
-                    stakedLocks[i].uniV2PairAmount = stakedLocks[i]
-                        .wrappedTokenAmount
-                        .mul(_uniswapV2PairTotalSupply)
-                        .div(_uniswapV2PairReserve0);
+                    uint256 adjustedWrappedTokenAmount = stakedLocks[i]
+                        .uniV2PairAmount
+                        .mul(_uniswapV2PairReserve0)
+                        .div(_uniswapV2PairTotalSupply);
 
+                    stakedLocks[i]
+                        .wrappedTokenAmount = adjustedWrappedTokenAmount;
+
+                    burnableWrappedAmount = burnableWrappedAmount.add(
+                        adjustedWrappedTokenAmount
+                    );
                     result = true;
                     break;
                 } else {
                     locksToRemove[currentIndexOfLocksToBeRemoved] = i;
                     currentIndexOfLocksToBeRemoved = currentIndexOfLocksToBeRemoved
                         .add(1);
+
+                    burnableWrappedAmount = burnableWrappedAmount.add(
+                        stakedLocks[i].wrappedTokenAmount
+                    );
                 }
             }
         }
@@ -364,7 +376,7 @@ contract Steroids is AragonApp {
             delete stakedLocks[locksToRemove[i]];
         }
 
-        return result;
+        return (result, burnableWrappedAmount);
     }
 
     /**

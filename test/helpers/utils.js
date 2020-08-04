@@ -53,13 +53,11 @@ const removeLiquidity = async (_pair, _appManager, _liquidity) => {
   await _pair.burn(_appManager)
 }
 
-const getAdjustedAmount = async (_pair, _amount, _isStaking = true) => {
+const getAdjustedAmount = async (_pair, _amount) => {
   const reserves = await _pair.getReserves()
   const reserve0 = parseInt(reserves[0])
   const totalSupply = parseInt(await _pair.totalSupply())
-  return _isStaking
-    ? Math.floor((_amount * reserve0) / totalSupply)
-    : Math.floor((_amount * totalSupply) / reserve0)
+  return Math.floor((_amount * reserve0) / totalSupply)
 }
 
 // NOTE: call steroids.adjusteBalanceOf() before getting staked locks to process
