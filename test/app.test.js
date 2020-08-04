@@ -717,12 +717,7 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
         )
 
         assert.strictEqual(locks.length, filtered.length)
-        assert.strictEqual(
-          parseInt(
-            (await miniMeToken.balanceOf(appManager))
-          ),
-          0
-        )
+        assert.strictEqual(parseInt(await miniMeToken.balanceOf(appManager)), 0)
 
         for (let i = 0; i < MAX_LOCKS; i++) {
           await stake(
@@ -760,8 +755,8 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
         }
 
         await timeTravel(LOCK_TIME)
-        await unstake(steroids, amountToStake * MAX_LOCKS / 2, appManager)
-        await unstake(steroids, amountToStake * MAX_LOCKS / 2, appManager)
+        await unstake(steroids, (amountToStake * MAX_LOCKS) / 2, appManager)
+        await unstake(steroids, (amountToStake * MAX_LOCKS) / 2, appManager)
 
         locks = await steroids.getStakedLocks(appManager)
         const emptyLocks = locks.filter(
@@ -772,12 +767,7 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
             wrappedTokenAmount === '0'
         )
         assert.strictEqual(emptyLocks.length, locks.length)
-        assert.strictEqual(
-          parseInt(
-            (await miniMeToken.balanceOf(appManager))
-          ),
-          0
-        )
+        assert.strictEqual(parseInt(await miniMeToken.balanceOf(appManager)), 0)
       })
 
       it('Should be able to unstake after changing CHANGE_MAX_LOCKS_ROLE until MAX_LOCKS + 1', async () => {
