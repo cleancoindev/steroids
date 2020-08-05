@@ -770,6 +770,46 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
         assert.strictEqual(parseInt(await miniMeToken.balanceOf(appManager)), 0)
       })
 
+      it('Should be able to unstake partially from a lock even if exist a lock with an equal amount of uniV2Pair', async () => {
+        const amountToStake = 200
+        const partialUnstake = 10
+        await stake(
+          uniV2Pair,
+          steroids,
+          amountToStake,
+          LOCK_TIME,
+          appManager,
+          appManager
+        )
+
+        await stake(
+          uniV2Pair,
+          steroids,
+          partialUnstake,
+          LOCK_TIME,
+          appManager,
+          appManager
+        )
+
+        await timeTravel(LOCK_TIME)
+
+        for (let i = 0; i < 2; i++) {
+          const expectedUnstakedAmount = await getAdjustedAmount(
+            uniV2Pair,
+            partialUnstake
+          )
+          const receipt = await unstake(steroids, partialUnstake, appManager)
+          const uniV2Amount = parseInt(
+            getEventArgument(receipt, 'Unstaked', 'uniV2Amount')
+          )
+          const wrappedtokenAmount = parseInt(
+            getEventArgument(receipt, 'Unstaked', 'wrappedTokenAmount')
+          )
+          assert.strictEqual(uniV2Amount, partialUnstake)
+          assert.strictEqual(wrappedtokenAmount, expectedUnstakedAmount)
+        }
+      })
+
       it('Should be able to unstake after changing CHANGE_MAX_LOCKS_ROLE until MAX_LOCKS + 1', async () => {
         await setPermission(
           acl,

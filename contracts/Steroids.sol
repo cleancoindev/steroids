@@ -310,13 +310,12 @@ contract Steroids is AragonApp {
         result = false;
 
         uint256 totalAmountUnstakedSoFar = 0;
-        uint256 stakedLocksLength = stakedLocks.length;
-        uint64[] memory locksToRemove = new uint64[](stakedLocksLength);
+        uint64[] memory locksToRemove = new uint64[](stakedLocks.length);
         uint64 currentIndexOfLocksToBeRemoved = 0;
 
         uint64 timestamp = getTimestamp64();
         uint64 i = 0;
-        for (; i < stakedLocksLength; i++) {
+        for (; i < stakedLocks.length; i++) {
             if (
                 timestamp >=
                 stakedLocks[i].lockDate.add(stakedLocks[i].duration) &&
@@ -347,16 +346,15 @@ contract Steroids is AragonApp {
                     stakedLocks[i].uniV2PairAmount = totalAmountUnstakedSoFar
                         .sub(_amountToUnstake);
 
-                    uint256 adjustedWrappedTokenAmount = stakedLocks[i]
+                    stakedLocks[i].wrappedTokenAmount = stakedLocks[i]
                         .uniV2PairAmount
                         .mul(_uniswapV2PairReserve0)
                         .div(_uniswapV2PairTotalSupply);
 
-                    stakedLocks[i]
-                        .wrappedTokenAmount = adjustedWrappedTokenAmount;
-
                     burnableWrappedAmount = burnableWrappedAmount.add(
-                        adjustedWrappedTokenAmount
+                        _amountToUnstake.mul(_uniswapV2PairReserve0).div(
+                            _uniswapV2PairTotalSupply
+                        )
                     );
                     result = true;
                     break;
