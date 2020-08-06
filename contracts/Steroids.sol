@@ -186,16 +186,6 @@ contract Steroids is AragonApp {
         uint256 uniswapV2PairTotalSupply = uniV2Pair.totalSupply();
         (uint256 uniswapV2PairReserve0, , ) = uniV2Pair.getReserves();
 
-        /*Lock[] storage stakedLocks = addressStakeLocks[msg.sender];
-        for (uint256 i = 0; i < stakedLocks.length; i++) {
-            _adjustBalanceAndStakedLockOf(
-                msg.sender,
-                stakedLocks[i],
-                uniswapV2PairTotalSupply,
-                uniswapV2PairReserve0
-            );
-        }*/
-
         (
             bool result,
             uint256 burnableWrappedTokenAmount
