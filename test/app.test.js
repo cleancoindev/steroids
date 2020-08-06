@@ -9,6 +9,7 @@ const {
   addLiquidity,
   removeLiquidity,
   getAdjustedAmount,
+  hasBeenUnstakedWithRounding,
 } = require('./helpers/utils')
 const { getEventArgument } = require('@aragon/test-helpers/events')
 
@@ -41,6 +42,8 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
     token1
   let MINT_ROLE,
     BURN_ROLE,
+    ISSUE_ROLE,
+    ASSIGN_ROLE,
     TRANSFER_ROLE,
     CHANGE_LOCK_TIME_ROLE,
     CHANGE_MAX_LOCKS_ROLE,
@@ -59,6 +62,8 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
     tokenManagerBase = await TokenManager.new()
     MINT_ROLE = await tokenManagerBase.MINT_ROLE()
     BURN_ROLE = await tokenManagerBase.BURN_ROLE()
+    ISSUE_ROLE = await tokenManagerBase.ISSUE_ROLE()
+    ASSIGN_ROLE = await tokenManagerBase.ASSIGN_ROLE()
 
     vaultBase = await Vault.new()
     TRANSFER_ROLE = await vaultBase.TRANSFER_ROLE()
@@ -539,6 +544,10 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
             expectedUnstakedAmount
           )
         }
+
+        const balance = parseInt(await miniMeToken.balanceOf(appManager))
+        // 0 since there is no remainder taken from other locks
+        assert.strictEqual(balance, 0)
       })
 
       it('Should be able to unstake with different lock times', async () => {
@@ -589,6 +598,10 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
             expectedUnstakedAmount
           )
         }
+
+        const balance = parseInt(await miniMeToken.balanceOf(appManager))
+        // 0 since there is no remainder taken from other locks
+        assert.strictEqual(balance, 0)
       })
 
       it('Should be able to stake for a non sender address and unstake without adjusting', async () => {
@@ -619,6 +632,10 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
         )
         assert.strictEqual(parseInt(uniV2Amount), amountToStake)
         assert.strictEqual(parseInt(wrappedTokenAmount), expectedUnstakedAmount)
+
+        const balance = parseInt(await miniMeToken.balanceOf(ACCOUNTS_1))
+        // 0 since there is no remainder taken from other locks
+        assert.strictEqual(balance, 0)
       })
 
       it('Should not be able to stake for a non sender address and unstake to msg.sender', async () => {
@@ -687,6 +704,9 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
         )
 
         assert.strictEqual(lock, expectedLock)
+
+        const balance = parseInt(await miniMeToken.balanceOf(appManager))
+        assert.strictEqual(balance, 0)
       })
 
       it('Should be able to stake MAX_LOCKS times, unstake until staked locks array is empty and staking other MAX_LOCKS times', async () => {
@@ -703,6 +723,10 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
             appManager
           )
         }
+
+        const balanceAfterStaking = parseInt(
+          await miniMeToken.balanceOf(appManager)
+        )
 
         await timeTravel(LOCK_TIME)
         await unstake(steroids, amountToStake * MAX_LOCKS, appManager)
@@ -739,6 +763,9 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
             wrappedTokenAmount === '0'
         )
         assert.strictEqual(lock, expectedLock)
+
+        const currentBalance = parseInt(await miniMeToken.balanceOf(appManager))
+        assert.strictEqual(currentBalance, balanceAfterStaking)
       })
 
       it('Should be able to stake MAX_LOCKS times and unstake in two times', async () => {
@@ -768,11 +795,17 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
         )
         assert.strictEqual(emptyLocks.length, locks.length)
         assert.strictEqual(parseInt(await miniMeToken.balanceOf(appManager)), 0)
+
+        const balance = parseInt(await miniMeToken.balanceOf(appManager))
+        // 0 since there is no remainder taken from other locks
+        assert.strictEqual(balance, 0)
       })
 
-      it('Should be able to unstake partially from a lock even if exist a lock with an equal amount of uniV2Pair', async () => {
+      it('Should be able to unstake from differents locks (1)', async () => {
         const amountToStake = 200
         const partialUnstake = 10
+        const initialBalance = parseInt(await miniMeToken.balanceOf(appManager))
+
         await stake(
           uniV2Pair,
           steroids,
@@ -791,6 +824,15 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
           appManager
         )
 
+        await addLiquidity(
+          token0,
+          token1,
+          10000000,
+          10000000,
+          uniV2Pair,
+          appManager
+        )
+
         await timeTravel(LOCK_TIME)
 
         for (let i = 0; i < 2; i++) {
@@ -802,12 +844,300 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
           const uniV2Amount = parseInt(
             getEventArgument(receipt, 'Unstaked', 'uniV2Amount')
           )
-          const wrappedtokenAmount = parseInt(
+          const wrappedTokenAmount = parseInt(
             getEventArgument(receipt, 'Unstaked', 'wrappedTokenAmount')
           )
           assert.strictEqual(uniV2Amount, partialUnstake)
-          assert.strictEqual(wrappedtokenAmount, expectedUnstakedAmount)
+          assert.strictEqual(
+            hasBeenUnstakedWithRounding(
+              wrappedTokenAmount,
+              expectedUnstakedAmount
+            ),
+            true
+          )
         }
+
+        // there is a remainder of 1 but we are interested on that the current
+        // balance is greater or equal than initial one since it means that no
+        // tokens generated from other apps have been burned
+        assert.strictEqual(
+          parseInt(await miniMeToken.balanceOf(appManager)) >= initialBalance,
+          true
+        )
+      })
+
+      it('Should be able to unstake from differents locks (2)', async () => {
+        const amountToStake = 200
+        const partialStake = 10
+        const partialUnstake = 50
+        const finalUnstake = 160 // (200 + 10) - 50
+        const initialBalance = parseInt(await miniMeToken.balanceOf(appManager))
+
+        await stake(
+          uniV2Pair,
+          steroids,
+          partialStake,
+          LOCK_TIME,
+          appManager,
+          appManager
+        )
+
+        await stake(
+          uniV2Pair,
+          steroids,
+          amountToStake,
+          LOCK_TIME,
+          appManager,
+          appManager
+        )
+
+        await addLiquidity(
+          token0,
+          token1,
+          10000000,
+          10000000,
+          uniV2Pair,
+          appManager
+        )
+
+        await timeTravel(LOCK_TIME)
+
+        let expectedUnstakedAmount = await getAdjustedAmount(
+          uniV2Pair,
+          partialUnstake
+        )
+        let receipt = await unstake(steroids, partialUnstake, appManager)
+        let uniV2Amount = parseInt(
+          getEventArgument(receipt, 'Unstaked', 'uniV2Amount')
+        )
+        let wrappedTokenAmount = parseInt(
+          getEventArgument(receipt, 'Unstaked', 'wrappedTokenAmount')
+        )
+        assert.strictEqual(uniV2Amount, partialUnstake)
+        assert.strictEqual(
+          hasBeenUnstakedWithRounding(
+            wrappedTokenAmount,
+            expectedUnstakedAmount
+          ),
+          true
+        )
+
+        expectedUnstakedAmount = await getAdjustedAmount(
+          uniV2Pair,
+          finalUnstake
+        )
+        receipt = await unstake(steroids, finalUnstake, appManager)
+        uniV2Amount = parseInt(
+          getEventArgument(receipt, 'Unstaked', 'uniV2Amount')
+        )
+        wrappedTokenAmount = parseInt(
+          getEventArgument(receipt, 'Unstaked', 'wrappedTokenAmount')
+        )
+        assert.strictEqual(uniV2Amount, finalUnstake)
+        assert.strictEqual(
+          hasBeenUnstakedWithRounding(
+            wrappedTokenAmount,
+            expectedUnstakedAmount
+          ),
+          true
+        )
+
+        // there is a remainder of 1 but we are interested on that the current
+        // balance is greater or equal than initial one since it means that no
+        // tokens generated from other apps have been burned
+        assert.strictEqual(
+          parseInt(await miniMeToken.balanceOf(appManager)) >= initialBalance,
+          true
+        )
+      })
+
+      it('Should be able to unstake from differents locks (3)', async () => {
+        const amountToStake = 50
+        const partialStake = 10
+        const partialUnstake = 115
+        const finalUnstake = 5 // (50 + 50 + 10 + 10) - 115
+        const initialBalance = parseInt(await miniMeToken.balanceOf(appManager))
+
+        await stake(
+          uniV2Pair,
+          steroids,
+          amountToStake,
+          LOCK_TIME,
+          appManager,
+          appManager
+        )
+
+        await stake(
+          uniV2Pair,
+          steroids,
+          partialStake,
+          LOCK_TIME,
+          appManager,
+          appManager
+        )
+
+        await stake(
+          uniV2Pair,
+          steroids,
+          amountToStake,
+          LOCK_TIME,
+          appManager,
+          appManager
+        )
+
+        await stake(
+          uniV2Pair,
+          steroids,
+          partialStake,
+          LOCK_TIME,
+          appManager,
+          appManager
+        )
+
+        await addLiquidity(
+          token0,
+          token1,
+          '100000000000',
+          '100000000000',
+          uniV2Pair,
+          appManager
+        )
+
+        await timeTravel(LOCK_TIME)
+
+        let expectedUnstakedAmount = await getAdjustedAmount(
+          uniV2Pair,
+          partialUnstake
+        )
+
+        let receipt = await unstake(steroids, partialUnstake, appManager)
+
+        await setPermission(
+          acl,
+          appManager,
+          steroids.address,
+          ADJUST_BALANCE_ROLE,
+          appManager
+        )
+        await steroids.adjustBalanceOf(appManager)
+
+        let uniV2Amount = parseInt(
+          getEventArgument(receipt, 'Unstaked', 'uniV2Amount')
+        )
+        let wrappedTokenAmount = parseInt(
+          getEventArgument(receipt, 'Unstaked', 'wrappedTokenAmount')
+        )
+        assert.strictEqual(uniV2Amount, partialUnstake)
+        assert.strictEqual(
+          hasBeenUnstakedWithRounding(
+            wrappedTokenAmount,
+            expectedUnstakedAmount
+          ),
+          true
+        )
+
+        expectedUnstakedAmount = await getAdjustedAmount(
+          uniV2Pair,
+          finalUnstake
+        )
+        receipt = await unstake(steroids, finalUnstake, appManager)
+        uniV2Amount = parseInt(
+          getEventArgument(receipt, 'Unstaked', 'uniV2Amount')
+        )
+        wrappedTokenAmount = parseInt(
+          getEventArgument(receipt, 'Unstaked', 'wrappedTokenAmount')
+        )
+        assert.strictEqual(uniV2Amount, finalUnstake)
+        assert.strictEqual(
+          hasBeenUnstakedWithRounding(
+            wrappedTokenAmount,
+            expectedUnstakedAmount
+          ),
+          true
+        )
+
+        assert.strictEqual(
+          parseInt(await miniMeToken.balanceOf(appManager)),
+          initialBalance
+        )
+      })
+
+      it('Should be able to unstake from differents locks (4)', async () => {
+        const amountToStake = 50
+        const partialStake = 10
+        const finalUnstake = 120 // (50 + 50 + 10 + 10)
+        const initialBalance = parseInt(await miniMeToken.balanceOf(appManager))
+
+        await stake(
+          uniV2Pair,
+          steroids,
+          amountToStake,
+          LOCK_TIME,
+          appManager,
+          appManager
+        )
+
+        await stake(
+          uniV2Pair,
+          steroids,
+          partialStake,
+          LOCK_TIME,
+          appManager,
+          appManager
+        )
+
+        await stake(
+          uniV2Pair,
+          steroids,
+          amountToStake,
+          LOCK_TIME,
+          appManager,
+          appManager
+        )
+
+        await stake(
+          uniV2Pair,
+          steroids,
+          partialStake,
+          LOCK_TIME,
+          appManager,
+          appManager
+        )
+
+        await timeTravel(LOCK_TIME)
+
+        await addLiquidity(
+          token0,
+          token1,
+          10000000,
+          10000000,
+          uniV2Pair,
+          appManager
+        )
+
+        const expectedUnstakedAmount = await getAdjustedAmount(
+          uniV2Pair,
+          finalUnstake
+        )
+        const receipt = await unstake(steroids, finalUnstake, appManager)
+        const uniV2Amount = parseInt(
+          getEventArgument(receipt, 'Unstaked', 'uniV2Amount')
+        )
+        const wrappedTokenAmount = parseInt(
+          getEventArgument(receipt, 'Unstaked', 'wrappedTokenAmount')
+        )
+        assert.strictEqual(uniV2Amount, finalUnstake)
+        assert.strictEqual(
+          hasBeenUnstakedWithRounding(
+            wrappedTokenAmount,
+            expectedUnstakedAmount
+          ),
+          true
+        )
+        assert.strictEqual(
+          parseInt(await miniMeToken.balanceOf(appManager)),
+          initialBalance
+        )
       })
 
       it('Should be able to unstake after changing CHANGE_MAX_LOCKS_ROLE until MAX_LOCKS + 1', async () => {
@@ -884,9 +1214,9 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
       })
 
       it('Should adjust the balance when liquidity increases', async () => {
-        const token0Amount = 10000000
-        const token1Amount = 10000000
-        const amountToStake = 100000
+        const token0Amount = 1000000000
+        const token1Amount = 5000000000
+        const amountToStake = 50000
         await stake(
           uniV2Pair,
           steroids,
@@ -904,6 +1234,7 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
           uniV2Pair,
           appManager
         )
+
         const receipt = await steroids.adjustBalanceOf(appManager)
         const owner = getEventArgument(receipt, 'StakedLockAdjusted', 'owner')
         const amount = parseInt(
@@ -924,9 +1255,10 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
       })
 
       it('Should adjust the balance when liquidity decreases', async () => {
-        const liquidity = 500000
-        const amountToStake = 100000
-
+        const token0Amount = 1000000000
+        const token1Amount = 5000000000
+        const amountToStake = 50000
+        const liquidityToRemove = 10000
         await stake(
           uniV2Pair,
           steroids,
@@ -936,7 +1268,16 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
           appManager
         )
 
-        await removeLiquidity(uniV2Pair, appManager, liquidity)
+        await addLiquidity(
+          token0,
+          token1,
+          token0Amount,
+          token1Amount,
+          uniV2Pair,
+          appManager
+        )
+
+        await removeLiquidity(uniV2Pair, appManager, liquidityToRemove)
         const receipt = await steroids.adjustBalanceOf(appManager)
         const owner = getEventArgument(receipt, 'StakedLockAdjusted', 'owner')
         const amount = parseInt(

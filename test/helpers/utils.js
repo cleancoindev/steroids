@@ -60,6 +60,9 @@ const getAdjustedAmount = async (_pair, _amount) => {
   return Math.floor((_amount * reserve0) / totalSupply)
 }
 
+const hasBeenUnstakedWithRounding = (_actual, _expected) =>
+  _expected - _actual === 0 || _expected - _actual === 1
+
 module.exports = {
   addLiquidity,
   removeLiquidity,
@@ -67,4 +70,5 @@ module.exports = {
   unstake,
   getBalances,
   getAdjustedAmount,
+  hasBeenUnstakedWithRounding,
 }
