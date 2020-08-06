@@ -30,6 +30,8 @@ const App = () => {
   const [defaultAmount, setDefaultAmount] = useState(null)
 
   const handleAction = ({ amount, action, duration, receiver }) => {
+    setDefaultAmount(null)
+
     if (action === 'Stake') {
       const onChainAmount = onChainFormat(
         new BigNumber(amount),

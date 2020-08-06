@@ -44,7 +44,7 @@ const Wallet = (_props) => {
       </TokenDetails>
 
       <LockDetails>
-        Stake your
+        {'Stake your'}
         <TokenSymbol
           css={`
             color: ${theme.info};
@@ -52,7 +52,23 @@ const Wallet = (_props) => {
         >
           {` ${uniV2Pair.symbol} `}
         </TokenSymbol>
-        and get the corresponding amount of
+        {' and get a number of '}
+        <TokenSymbol
+          css={`
+            color: ${theme.info};
+          `}
+        >
+          {` ${wrappedToken.symbol}`}
+        </TokenSymbol>{' '}
+        {' corresponding to the underlying  '}
+        <TokenSymbol
+          css={`
+            color: ${theme.info};
+          `}
+        >
+          {` ${uniV2Pair.token0.symbol}`}
+        </TokenSymbol>
+        {' your Uniswap Liquidity Position holds. Note that these special '}
         <TokenSymbol
           css={`
             color: ${theme.info};
@@ -60,8 +76,25 @@ const Wallet = (_props) => {
         >
           {` ${wrappedToken.symbol}`}
         </TokenSymbol>
-        {'. '}
-        After staking, it will be possible to unstake them only after at least
+        {' will periodically vary in amount depending on the '}
+        <TokenSymbol
+          css={`
+            color: ${theme.info};
+          `}
+        >
+          {` ${uniV2Pair.token0.symbol}`}
+        </TokenSymbol>
+        {' token being actually hold by the '}
+        <TokenSymbol
+          css={`
+            color: ${theme.info};
+          `}
+        >
+          {`${uniV2Pair.token0.symbol}-${uniV2Pair.token1.symbol}`}
+        </TokenSymbol>
+        {
+          ' Uniswap pool. After staking, it will be possible to unstake them only after at least'
+        }
         <Days
           css={`
             color: ${theme.info};

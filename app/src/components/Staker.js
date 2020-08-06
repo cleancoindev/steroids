@@ -36,7 +36,9 @@ class Staker extends Component {
       duration: time,
       amount: defaultAmount ? defaultAmount : '',
       convertedAmount: defaultAmount
-        ? toWrappedToken(new BigNumber(defaultAmount), uniV2Pair)
+        ? new BigNumber(
+            toWrappedToken(new BigNumber(defaultAmount), uniV2Pair)
+          ).toFixed(2)
         : '',
       receiver: account ? account : '',
       error: '',
@@ -113,7 +115,9 @@ class Staker extends Component {
       amount: _amount,
       convertedAmount:
         _amount.length > 0
-          ? toWrappedToken(new BigNumber(_amount), uniV2Pair)
+          ? new BigNumber(
+              toWrappedToken(new BigNumber(_amount), uniV2Pair)
+            ).toFixed(2)
           : '',
     })
   }
