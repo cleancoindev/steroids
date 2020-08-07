@@ -9,6 +9,16 @@
       "name": "Change vault",
       "id": "CHANGE_VAULT_ROLE",
       "params": []
+    },
+    {
+      "name": "Change max locks",
+      "id": "CHANGE_MAX_LOCKS_ROLE",
+      "params": []
+    },
+    {
+      "name": "Adjust user balances",
+      "id": "ADJUST_BALANCE_ROLE",
+      "params": []
     }
   ],
   "environments": {
