@@ -84,25 +84,25 @@ contract Steroids is AragonApp {
      * @notice Initialize Steroids app contract
      * @param _tokenManager TokenManager address
      * @param _vault Vault address
-     * @param _uniswapV2Pair Accepted token address
+     * @param _uniV2Pair Accepted token address
      * @param _minLockTime number of seconds after which it's possible to unwrap tokens related to a wrap
      * @param _maxLocks number of possible stakedLocks for a given address before doing an unwrap
      */
     function initialize(
         address _tokenManager,
         address _vault,
-        address _uniswapV2Pair,
+        address _uniV2Pair,
         uint64 _minLockTime,
         uint64 _maxLocks
     ) external onlyInit {
         require(isContract(_tokenManager), ERROR_ADDRESS_NOT_CONTRACT);
-        require(isContract(_uniswapV2Pair), ERROR_ADDRESS_NOT_CONTRACT);
+        require(isContract(_uniV2Pair), ERROR_ADDRESS_NOT_CONTRACT);
         require(isContract(_vault), ERROR_ADDRESS_NOT_CONTRACT);
         require(_maxLocks <= MAX_LOCKS_LIMIT, ERROR_MAX_LOCKS_TOO_HIGH);
 
         wrappedTokenManager = TokenManager(_tokenManager);
         vault = Vault(_vault);
-        uniV2Pair = IUniswapV2Pair(_uniswapV2Pair);
+        uniV2Pair = IUniswapV2Pair(_uniV2Pair);
         minLockTime = _minLockTime;
         maxLocks = _maxLocks;
 
@@ -113,8 +113,8 @@ contract Steroids is AragonApp {
      * @notice Stake a given amount of uniV2Pair into wrappedTokenManager's token
      * @dev This function requires the MINT_ROLE permission on the TokenManager specified
      * @param _amount number of uniV2Pair tokens to stake
-     * @param _duration lock time for this wrapping
-     * @param _receiver address who will receive back once unwrapped
+     * @param _duration lock time for this staking
+     * @param _receiver address who will receive back once unstaked
      */
     function stake(
         uint256 _amount,
@@ -136,8 +136,6 @@ contract Steroids is AragonApp {
             ERROR_TOKEN_WRAP_REVERTED
         );
 
-        // the amount to stake is the _amount of staked tokens within an Uniswap pool by msg.sender
-        // amount = (_amount / totalSupply) * reserve0
         uint256 uniswapV2PairTotalSupply = uniV2Pair.totalSupply();
         (uint256 uniswapV2PairReserve0, , ) = uniV2Pair.getReserves();
         uint256 wrappedTokenAmountToStake = _amount
@@ -396,7 +394,7 @@ contract Steroids is AragonApp {
     }
 
     /**
-     * @notice Adjust a staked lock amount
+     * @notice Adjust a staked lock and corresponding portion of wrappedToken balance
      * @dev This function requires the MINT_ROLE and BURN_ROLE permission on the TokenManager specified
      * @param _owner token owner
      * @param _lock lock to adjust
