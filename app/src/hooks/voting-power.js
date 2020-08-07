@@ -15,20 +15,16 @@ const useVotingPowerDetails = () => {
   } = useAppState()
 
   return useMemo(() => {
-    const minimedVaultBalance = vaultBalance
-      .dividedBy(uniV2Pair.totalSupply)
-      .multipliedBy(uniV2Pair.reserve0)
-
     const stakedAmount = calculateStakedAmount(stakedLocks, uniV2Pair)
 
     return [
       {
         uniV2PairBalance:
           uniV2PairBalance && account ? strip(stakedAmount, 6) : '-',
-        vaultBalance: minimedVaultBalance
+        vaultBalance: vaultBalance
           ? strip(
               offChainFormat(
-                minimedVaultBalance,
+                vaultBalance,
                 uniV2Pair.decimals
               ).toString(),
               6
