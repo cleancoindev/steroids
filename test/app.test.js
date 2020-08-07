@@ -42,8 +42,6 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
     token1
   let MINT_ROLE,
     BURN_ROLE,
-    ISSUE_ROLE,
-    ASSIGN_ROLE,
     TRANSFER_ROLE,
     CHANGE_LOCK_TIME_ROLE,
     CHANGE_MAX_LOCKS_ROLE,
@@ -62,8 +60,6 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
     tokenManagerBase = await TokenManager.new()
     MINT_ROLE = await tokenManagerBase.MINT_ROLE()
     BURN_ROLE = await tokenManagerBase.BURN_ROLE()
-    ISSUE_ROLE = await tokenManagerBase.ISSUE_ROLE()
-    ASSIGN_ROLE = await tokenManagerBase.ASSIGN_ROLE()
 
     vaultBase = await Vault.new()
     TRANSFER_ROLE = await vaultBase.TRANSFER_ROLE()
@@ -804,7 +800,6 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
       it('Should be able to unstake from differents locks (1)', async () => {
         const amountToStake = 200
         const partialUnstake = 10
-        const initialBalance = parseInt(await miniMeToken.balanceOf(appManager))
 
         await stake(
           uniV2Pair,
@@ -856,14 +851,6 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
             true
           )
         }
-
-        // there is a remainder of 1 but we are interested on that the current
-        // balance is greater or equal than initial one since it means that no
-        // tokens generated from other apps have been burned
-        assert.strictEqual(
-          parseInt(await miniMeToken.balanceOf(appManager)) >= initialBalance,
-          true
-        )
       })
 
       it('Should be able to unstake from differents locks (2)', async () => {
@@ -895,7 +882,7 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
           token0,
           token1,
           10000000,
-          10000000,
+          50000000,
           uniV2Pair,
           appManager
         )
@@ -942,7 +929,7 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
           true
         )
 
-        // there is a remainder of 1 but we are interested on that the current
+        // there is a remainder of 2 but we are interested on that the current
         // balance is greater or equal than initial one since it means that no
         // tokens generated from other apps have been burned
         assert.strictEqual(
@@ -1011,16 +998,6 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
         )
 
         let receipt = await unstake(steroids, partialUnstake, appManager)
-
-        await setPermission(
-          acl,
-          appManager,
-          steroids.address,
-          ADJUST_BALANCE_ROLE,
-          appManager
-        )
-        await steroids.adjustBalanceOf(appManager)
-
         let uniV2Amount = parseInt(
           getEventArgument(receipt, 'Unstaked', 'uniV2Amount')
         )
@@ -1056,15 +1033,18 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
           true
         )
 
+        // there is a remainder of 1 but we are interested on that the current
+        // balance is greater or equal than initial one since it means that no
+        // tokens generated from other apps have been burned
         assert.strictEqual(
-          parseInt(await miniMeToken.balanceOf(appManager)),
-          initialBalance
+          parseInt(await miniMeToken.balanceOf(appManager)) >= initialBalance,
+          true
         )
       })
 
       it('Should be able to unstake from differents locks (4)', async () => {
         const amountToStake = 50
-        const partialStake = 10
+        const amountToStake2 = 10
         const finalUnstake = 120 // (50 + 50 + 10 + 10)
         const initialBalance = parseInt(await miniMeToken.balanceOf(appManager))
 
@@ -1080,7 +1060,7 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
         await stake(
           uniV2Pair,
           steroids,
-          partialStake,
+          amountToStake2,
           LOCK_TIME,
           appManager,
           appManager
@@ -1098,7 +1078,7 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
         await stake(
           uniV2Pair,
           steroids,
-          partialStake,
+          amountToStake2,
           LOCK_TIME,
           appManager,
           appManager
@@ -1214,7 +1194,7 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
       })
 
       it('Should adjust the balance when liquidity increases', async () => {
-        const token0Amount = 1000000000
+        const token0Amount = 10000000000
         const token1Amount = 5000000000
         const amountToStake = 50000
         await stake(
@@ -1255,7 +1235,7 @@ contract('Steroids', ([appManager, ACCOUNTS_1, ...accounts]) => {
       })
 
       it('Should adjust the balance when liquidity decreases', async () => {
-        const token0Amount = 1000000000
+        const token0Amount = 10000000000
         const token1Amount = 5000000000
         const amountToStake = 50000
         const liquidityToRemove = 10000
