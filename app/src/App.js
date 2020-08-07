@@ -58,7 +58,7 @@ const App = () => {
       ) : (
         <Fragment>
           <Header
-            primary="Staking Manager"
+            primary="Steroids"
             secondary={
               <React.Fragment>
                 <Button

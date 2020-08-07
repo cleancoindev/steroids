@@ -1,1 +1,1 @@
-An Aragon app that allows to lock for a customizable amount of time, a quantity of ERC20 token(s) in exchange for wrappedToken(s).
+An Aragon app that allows to lock for a customizable amount of time, a quantity of UniV2 tokens in exchange for organization's tokens.

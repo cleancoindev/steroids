@@ -143,7 +143,7 @@ class Staker extends Component {
         >
           {`This action will ${
             action === 'Stake'
-              ? `create organization's tokens and transfer them to the address specified below`
+              ? `create organization's tokens and transfer them to the address specified below.`
               : `burn organization's tokens and will transfer the corresponding amount (of deposited tokens) to the transaction sender.`
           } `}
           <br />
