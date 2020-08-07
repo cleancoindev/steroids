@@ -1,6 +1,6 @@
 {
   "name": "steroid",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "An Aragon app that allows to stake UNIv2 tokens in exchange for organization's tokens",
   "author": "allemanfredi@provable-things <alle.manfredi@gmail.com>",
   "scripts": {
