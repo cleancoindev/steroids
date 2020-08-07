@@ -85,8 +85,8 @@ contract Steroids is AragonApp {
      * @param _tokenManager TokenManager address
      * @param _vault Vault address
      * @param _uniV2Pair Accepted token address
-     * @param _minLockTime number of seconds after which it's possible to unwrap tokens related to a wrap
-     * @param _maxLocks number of possible stakedLocks for a given address before doing an unwrap
+     * @param _minLockTime minimum number of seconds after which it's possible to unstake tokens
+     * @param _maxLocks number of possible Lock for a given address
      */
     function initialize(
         address _tokenManager,
@@ -293,7 +293,7 @@ contract Steroids is AragonApp {
 
     /**
      * @notice Check if it's possible to unstake the specified _amountToUnstake of tokens, updates (or deletes) related stakedLocks and adjust the balance
-     * @param _unstaker address who want to unwrap
+     * @param _unstaker address who want to unstake
      * @param _amountToUnstake uinV2Pair amount
      * @param _uniswapV2PairTotalSupply UniV2 current total supply
      * @param _uniswapV2PairReserve0 UniV2 current value of Reserve0
