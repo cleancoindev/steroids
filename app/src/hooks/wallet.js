@@ -23,7 +23,8 @@ const useWalletDetails = () => {
       uniV2PairBalance:
         uniV2PairBalance && account
           ? strip(
-              offChainFormat(uniV2PairBalance, uniV2Pair.decimals).toString()
+              offChainFormat(uniV2PairBalance, uniV2Pair.decimals).toString(),
+              6
             )
           : '-',
       minLockTime: minLockTime ? parseSeconds(minLockTime) : '-',

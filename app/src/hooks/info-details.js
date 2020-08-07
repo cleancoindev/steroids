@@ -21,9 +21,9 @@ const useInfoDetails = () => {
     const sumbn = unlockedbn.plus(lockedbn)
 
     return {
-      locked: lockedbn && account ? strip(lockedbn.toString()) : '-',
-      unlocked: unlockedbn && account ? strip(unlockedbn.toString()) : '-',
-      sum: sumbn && account ? strip(sumbn.toString()) : '-',
+      locked: lockedbn && account ? strip(lockedbn.toString(), 6) : '-',
+      unlocked: unlockedbn && account ? strip(unlockedbn.toString(), 6) : '-',
+      sum: sumbn && account ? strip(sumbn.toString(), 6) : '-',
       perLocked: !sumbn.isEqualTo(0)
         ? parseFloat(
             parseFloat(lockedbn.dividedBy(sumbn).multipliedBy(100).toString())

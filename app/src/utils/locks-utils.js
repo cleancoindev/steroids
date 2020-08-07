@@ -38,6 +38,15 @@ const calculateMaxUnstakableAmount = (_stakedLocks, _uniV2Pair) => {
   return offChainFormat(unstakableAmount, _uniV2Pair.decimals).toFixed()
 }
 
+const calculateStakedAmount = (_stakedLocks, _uniV2Pair) => {
+  let stakedAmount = new BigNumber(0)
+  for (let i = 0; i < _stakedLocks.length; i++) {
+    stakedAmount = stakedAmount.plus(_stakedLocks[i].uniV2PairAmount)
+  }
+
+  return offChainFormat(stakedAmount, _uniV2Pair.decimals).toFixed()
+}
+
 const isUnlocked = (_lock) => {
   const now = new Date().getTime() / 1000
   return _lock.lockDate + _lock.duration < now
@@ -58,4 +67,5 @@ export {
   getTotalAmountOfUnlockedTokens,
   getTotalAmountOfLockedTokens,
   calculateMaxUnstakableAmount,
+  calculateStakedAmount,
 }

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Box, ProgressBar, useTheme, GU } from '@aragon/ui'
+import { Box, useTheme, GU } from '@aragon/ui'
 import { useAppState } from '@aragon/api-react'
 import styled from 'styled-components'
 import { useVotingPowerDetails } from '../hooks/voting-power'
@@ -7,9 +7,7 @@ import { useVotingPowerDetails } from '../hooks/voting-power'
 const VotingPower = (_props) => {
   const { uniV2Pair } = useAppState()
 
-  const [
-    { votingPower, wrappedTokenBalance, vaultBalance },
-  ] = useVotingPowerDetails()
+  const [{ uniV2PairBalance, vaultBalance }] = useVotingPowerDetails()
 
   const theme = useTheme()
 
@@ -46,21 +44,8 @@ const VotingPower = (_props) => {
           </TokenSymbol>{' '}
           staked in the DAO:{' '}
         </DetailText>
-        <DetailValue>{wrappedTokenBalance}</DetailValue>
+        <DetailValue>{uniV2PairBalance}</DetailValue>
       </Detail>
-      <Detail
-        css={`
-          margin-top: ${3 * GU}px;
-        `}
-      >
-        <DetailText>Your voting power: </DetailText>
-        <DetailValue>
-          {votingPower
-            ? `${votingPower >= 100 ? 100 : (votingPower * 100).toFixed(2)}%`
-            : '0%'}{' '}
-        </DetailValue>
-      </Detail>
-      <ProgressBar value={votingPower ? votingPower : 0} />
     </Box>
   )
 }

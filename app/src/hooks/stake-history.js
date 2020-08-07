@@ -21,9 +21,10 @@ const useStakeHistoryDetails = () => {
           return {
             uniV2PairAmount: offchainUniV2PairAmount,
             textedUniV2PairAmount: `${strip(
-              offchainUniV2PairAmount.toString()
+              offchainUniV2PairAmount.toString(),
+              6
             )} ${uniV2Pair.symbol}`,
-            textedWrappedTokenAmount: `(${strip(
+            textedWrappedTokenAmount: `(~${strip(
               toWrappedToken(offchainUniV2PairAmount, uniV2Pair).toString()
             )} ${wrappedToken.symbol})`,
             lockDate,

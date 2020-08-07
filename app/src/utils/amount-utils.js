@@ -15,11 +15,8 @@ const parseAmount = (_decimals, _amount) => {
   return num.dividedBy(den)
 }
 
-const strip = (_number) =>
-  parseFloat(_number)
-    .toFixed(3)
-    .toString()
-    .replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+const strip = (_number, _fixed = 3) =>
+  parseFloat(_number).toFixed(_fixed).toString()
 
 const parsePercentage = (_percentage) => {
   if (_percentage === 0) {
