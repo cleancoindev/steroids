@@ -372,6 +372,7 @@ contract Steroids is AragonApp {
                      */
                     // prettier-ignore
                     burnableWrappedTokenAmount = burnableWrappedTokenAmount.sub(1);
+                    stakedLocks[i].wrappedTokenAmount = stakedLocks[i].wrappedTokenAmount.sub(1);
 
                     result = true;
                     break;
